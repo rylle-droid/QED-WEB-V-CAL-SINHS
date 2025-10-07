@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>QED — Vector Calculus Solver</title>
+<style>
+  body {
+    font-family: 'Poppins', sans-serif;
+    background-color: #fff5f8;
+    color: #3a2e2e;
+    margin: 0;
+    padding: 20px;
+  }
+  header {
+    text-align: center;
+    background: linear-gradient(135deg,#fbcfe8,#f9a8d4,#fcd34d);
+    padding: 20px;
+    border-radius: 15px;
+    color: #3b1e1e;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+  }
+  header h1 { margin-bottom: 5px; }
+  .container {
+    max-width: 950px;
+    margin: 30px auto;
+    background: #fff;
+    border-radius: 15px;
+    box-shadow: 0 0 15px rgba(0,0,0,0.05);
+    padding: 30px;
+  }
+  h2 { color: #d6336c; }
+  label {
+    display: block;
+    font-weight: bold;
+    margin-top: 15px;
+  }
+  select, input {
+    width: 100%;
+    padding: 10px;
+    margin-top: 5px;
+    border: 1px solid #f9a8d4;
+    border-radius: 8px;
+    background: #fffafc;
+  }
+  button {
+    background-color: #f472b6;
+    border: none;
+    color: white;
+    padding: 10px 20px;
+    border-radius: 10px;
+    margin-top: 20px;
+    margin-right: 10px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: 0.3s;
+  }
+  button:hover { background-color: #ec4899; }
+  .hidden { display: none; }
+  .output {
+    background: #fff0f6;
+    border: 1px solid #f9a8d4;
+    border-radius: 10px;
+    margin-top: 25px;
+    padding: 15px;
+  }
+  pre {
+    white-space: pre-wrap;
+    background: #fff;
+    border-radius: 8px;
+    padding: 10px;
+    border: 1px solid #fcd34d;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>💖 QED — Vector Calculus Solver</h1>
+  <p>Manual • Python • Calculator Techniques</p>
+</header>
+
+<div class="container">
+  <label for="problemType">Select Problem:</label>
+  <select id="problemType">
+    <option value="">-- Choose --</option>
+    <option>Vector Addition</option>
+    <option>Dot Product</option>
+    <option>Cross Product</option>
+    <option>Vector Norm</option>
+    <option>Torque</option>
+    <option>Force System</option>
+    <option>Projectile Motion</option>
+  </select>
+
+  <label for="dimensionSelect">Select Dimension:</label>
+  <select id="dimensionSelect">
+    <option value="2d">2D</option>
+    <option value="3d">3D</option>
+  </select>
+
+  <div id="inputs"></div>
+
+  <button onclick="solve()">Solve</button>
+  <button onclick="resetAll()">Reset</button>
+
+  <div id="output" class="output hidden">
+    <h2>Manual Solution</h2>
+    <pre id="manual"></pre>
+    <h2>Python Code</h2>
+    <pre id="python"></pre>
+    <h2>Calculator Shortcut</h2>
+    <pre id="calc"></pre>
+  </div>
+</div>
+
+<footer style="text-align:center; margin-top:20px; font-size:13px;">
+  Developed by <b>Karylle S. Ramel</b> • Science & Technology Fair 2025
+</footer>
+
+<script>
+// === Helper Functions ===
+function addVectors(a,b){return a.map((x,i)=>x+b[i]);}
+function dotProduct(a,b){return a.reduce((s,x,i)=>s+x*b[i],0);}
+function crossProduct(a,b){return [a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]];}
+function magnitude(a){return Math.sqrt(a.reduce((s,x)=>s+x*x,0));}
+
+// === Input Generation ===
+function generateInputs(){
+  const type=document.getElementById("problemType").value;
+  const inputs=document.getElementById("inputs");
+  inputs.innerHTML="";
+  const addInput=(label)=>{ 
+    const div=document.createElement("div");
+    const lbl=document.createElement("label");
+    lbl.textContent=label;
+    const inp=document.createElement("input");
+    inp.placeholder="e.g. (3,4,0)";
+    div.appendChild(lbl);
+    div.appendChild(inp);
+    inputs.appendChild(div);
+  };
+  if(type==="Vector Addition"||type==="Dot Product"||type==="Cross Product"){
+    addInput("Vector A"); addInput("Vector B");
+  } else if(type==="Vector Norm"){ addInput("Vector A"); }
+  else if(type==="Torque"){ addInput("r (position vector)"); addInput("F (force vector)"); }
+  else if(type==="Force System"){ addInput("Force 1"); addInput("Force 2"); addInput("Force 3"); }
+  else if(type==="Projectile Motion"){
+    addInput("Initial Velocity u (m/s)");
+    addInput("Angle θ (degrees)");
+    addInput("Time t (s)");
+  }
+}
+
+// Auto-refresh inputs
+document.getElementById("problemType").addEventListener("change", generateInputs);
+
+// === Solver ===
+function solve(){
+  const type=document.getElementById("problemType").value;
+  const dim=document.getElementById("dimensionSelect").value;
+  const inputs=[...document.querySelectorAll("#inputs input")].map(x=>x.value);
+  const output=document.getElementById("output");
+  const manual=document.getElementById("manual");
+  const python=document.getElementById("python");
+  const calc=document.getElementById("calc");
+  const parseVec=(s)=>s.replace(/[()]/g,"").split(",").map(Number);
+  let manualText="", pyText="", calcText="";
+
+  // === Vector Addition ===
+  if(type==="Vector Addition"){
+    const A=parseVec(inputs[0]);
+    const B=parseVec(inputs[1]);
+    const R=addVectors(A,B);
+    const magR=magnitude(R).toFixed(4);
+    manualText=`Given: A=${A}, B=${B}
+R = A + B = ${R}
+|R| = √(${R.map(x=>x+"²").join("+")}) = ${magR}`;
+    pyText=`import math
+A=${JSON.stringify(A)}
+B=${JSON.stringify(B)}
+R=[A[i]+B[i] for i in range(len(A))]
+magR=math.sqrt(sum(x**2 for x in R))
+print("R=",R)
+print("|R|=",magR)`;
+    calcText=`[MODE 8][1:VctA][${dim==="2d"?"2:2":"1:3"}]=${A}
+[2:VctB][${dim==="2d"?"2:2":"1:3"}]=${B}
+Input: VctA + VctB
+Result: ${R}
+[Abs(VctAns)] = ${magR}`;
+  }
+
+  // === Dot Product ===
+  else if(type==="Dot Product"){
+    const A=parseVec(inputs[0]), B=parseVec(inputs[1]);
+    const dot=dotProduct(A,B);
+    const magA=magnitude(A), magB=magnitude(B);
+    const cos=Math.max(-1,Math.min(1,dot/(magA*magB)));
+    const theta=Math.acos(cos)*180/Math.PI;
+    manualText=`Given A=${A}, B=${B}
+A·B = ${dot}
+|A|=${magA.toFixed(4)}, |B|=${magB.toFixed(4)}
+θ = cos⁻¹(${cos.toFixed(4)}) = ${theta.toFixed(4)}°`;
+    pyText=`import math
+A=${JSON.stringify(A)}; B=${JSON.stringify(B)}
+dot=sum(A[i]*B[i] for i in range(len(A)))
+magA=math.sqrt(sum(x**2 for x in A))
+magB=math.sqrt(sum(x**2 for x in B))
+cos_theta=max(-1,min(1,dot/(magA*magB)))
+angle=math.degrees(math.acos(cos_theta))
+print("A·B =",dot)
+print("Angle =",angle,"deg")`;
+    calcText=`[MODE 8][1:VctA][${dim==="2d"?"2:2":"1:3"}]=${A}
+[2:VctB][${dim==="2d"?"2:2":"1:3"}]=${B}
+Input: VctA VctB
+Result: ${dot}`;
+  }
+
+  // === Cross Product ===
+  else if(type==="Cross Product"){
+    const A=parseVec(inputs[0]), B=parseVec(inputs[1]);
+    const C=crossProduct(A,B);
+    const magC=magnitude(C).toFixed(4);
+    manualText=`Given: A=${A}, B=${B}
+A×B = ${C}
+|A×B| = ${magC}`;
+    pyText=`import math
+A=${JSON.stringify(A)}; B=${JSON.stringify(B)}
+C=[A[1]*B[2]-A[2]*B[1],A[2]*B[0]-A[0]*B[2],A[0]*B[1]-A[1]*B[0]]
+magC=math.sqrt(sum(x**2 for x in C))
+print("A×B =",C)
+print("|A×B| =",magC)`;
+    calcText=`[MODE 8][1:VctA][1:3]=${A}
+[2:VctB][1:3]=${B}
+Input: VctA×VctB
+Result: ${C}
+[Abs(VctAns)] = ${magC}`;
+  }
+
+  // === Vector Norm ===
+  else if(type==="Vector Norm"){
+    const A=parseVec(inputs[0]);
+    const magA=magnitude(A).toFixed(4);
+    manualText=`|A| = √(${A.map(x=>x+"²").join("+")}) = ${magA}`;
+    pyText=`import math
+A=${JSON.stringify(A)}
+magA=math.sqrt(sum(x**2 for x in A))
+print("|A| =",magA)`;
+    calcText=`[MODE 8][1:VctA][${dim==="2d"?"2:2":"1:3"}]=${A}
+[Abs(VctA)] = ${magA}`;
+  }
+
+  // === Torque ===
+  else if(type==="Torque"){
+    const r=parseVec(inputs[0]), F=parseVec(inputs[1]);
+    const τ=crossProduct(r,F);
+    const magT=magnitude(τ).toFixed(4);
+    manualText=`τ = r×F = ${τ}
+|τ| = ${magT}`;
+    pyText=`import math
+r=${JSON.stringify(r)}; F=${JSON.stringify(F)}
+τ=[r[1]*F[2]-r[2]*F[1],r[2]*F[0]-r[0]*F[2],r[0]*F[1]-r[1]*F[0]]
+magT=math.sqrt(sum(x**2 for x in τ))
+print("τ =",τ)
+print("|τ| =",magT)`;
+    calcText=`[MODE 8][1:VctA][1:3]=${r}
+[2:VctB][1:3]=${F}
+Input: VctA×VctB
+Result: ${τ}
+[Abs(VctAns)] = ${magT}`;
+  }
+
+  // === Force System ===
+  else if(type==="Force System"){
+    const F1=parseVec(inputs[0]), F2=parseVec(inputs[1]), F3=parseVec(inputs[2]);
+    const R=addVectors(addVectors(F1,F2),F3);
+    const magR=magnitude(R).toFixed(4);
+    manualText=`R = F1 + F2 + F3 = ${R}
+|R| = ${magR}`;
+    pyText=`import math
+F1=${JSON.stringify(F1)}; F2=${JSON.stringify(F2)}; F3=${JSON.stringify(F3)}
+R=[F1[i]+F2[i]+F3[i] for i in range(len(F1))]
+magR=math.sqrt(sum(x**2 for x in R))
+print("R =",R)
+print("|R| =",magR)`;
+    calcText=`[MODE 8][1:VctA][${dim==="2d"?"2:2":"1:3"}]=${F1}
+[2:VctB][${dim==="2d"?"2:2":"1:3"}]=${F2}
+[3:VctC][${dim==="2d"?"2:2":"1:3"}]=${F3}
+Input: VctA+VctB+VctC
+Result: ${R}
+[Abs(VctAns)] = ${magR}`;
+  }
+
+  // === Projectile Motion ===
+  else if(type==="Projectile Motion"){
+    const u=parseFloat(inputs[0]);
+    const angle=parseFloat(inputs[1]);
+    const t=parseFloat(inputs[2]);
+    const g=9.8;
+    const rad=angle*Math.PI/180;
+    const Vx=u*Math.cos(rad);
+    const Vy=u*Math.sin(rad);
+    const Sx=Vx*t;
+    const Sy=Vy*t-0.5*g*t*t;
+    const Vx_t=Vx;
+    const Vy_t=Vy-g*t;
+    const speed=Math.hypot(Vx_t,Vy_t);
+    const angle_deg=Math.atan2(Vy_t,Vx_t)*180/Math.PI;
+
+    manualText=`1. Initial velocity components:
+Vx = u cosθ = ${u} cos ${angle}° = ${Vx.toFixed(10)} m/s
+Vy = u sinθ = ${u} sin ${angle}° = ${Vy.toFixed(10)} m/s
+
+2. Horizontal displacement Sx:
+Sx = Vx * t = ${Vx.toFixed(10)} * ${t} = ${Sx.toFixed(10)} m
+
+3. Vertical displacement Sy:
+Sy = Vy * t - 1/2 g t^2
+Vy*t = ${Vy.toFixed(10)} * ${t} = ${(Vy*t).toFixed(10)}
+1/2 g t^2 = 0.5 * ${g} * ${t*t} = ${(0.5*g*t*t).toFixed(10)}
+Sy = ${(Vy*t).toFixed(10)} - ${(0.5*g*t*t).toFixed(10)} = ${Sy.toFixed(10)} m
+
+4. Velocity components at t=${t}s:
+Vx = ${Vx_t.toFixed(10)} m/s
+Vy = ${Vy_t.toFixed(10)} m/s
+
+5. Speed (magnitude):
+v = sqrt(Vx^2 + Vy^2) = ${speed.toFixed(10)} m/s
+
+6. Angle with horizontal:
+θx = arctan(Vy/Vx) = ${angle_deg.toFixed(6)}° 
+(Negative indicates below horizontal)`;
+
+    pyText=`import math
+u=${u}; theta_deg=${angle}; t=${t}; g=9.8
+theta=math.radians(theta_deg)
+Vx=u*math.cos(theta)
+Vy=u*math.sin(theta)
+Sx=Vx*t
+Sy=Vy*t-0.5*g*t**2
+Vx_t=Vx
+Vy_t=Vy-g*t
+speed=math.hypot(Vx_t,Vy_t)
+angle_deg=math.degrees(math.atan2(Vy_t,Vx_t))
+print(f"Vx={Vx:.10f}, Vy={Vy:.10f}")
+print(f"Sx={Sx:.10f}, Sy={Sy:.10f}")
+print(f"Vx(t)={Vx_t:.10f}, Vy(t)={Vy_t:.10f}")
+print(f"Speed={speed:.10f}, Angle={angle_deg:.6f} deg")`;
+
+    calcText=`[MODE 1]
+u=${u}, θ=${angle}°, t=${t}s
+Vx = ${Vx.toFixed(10)}
+Vy = ${Vy.toFixed(10)}
+Sx = ${Sx.toFixed(10)}
+Sy = ${Sy.toFixed(10)}
+Vx(t) = ${Vx_t.toFixed(10)}, Vy(t) = ${Vy_t.toFixed(10)}
+Speed = ${speed.toFixed(10)}
+Angle = ${angle_deg.toFixed(6)}°`;
+  }
+
+  manual.textContent=manualText;
+  python.textContent=pyText;
+  calc.textContent=calcText;
+  output.classList.remove("hidden");
+}
+
+// === Reset ===
+function resetAll(){
+  document.getElementById("problemType").value="";
+  document.getElementById("inputs").innerHTML="";
+  document.getElementById("output").classList.add("hidden");
+}
+</script>
+</body>
+</html>
